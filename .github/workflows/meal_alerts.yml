@@ -2,10 +2,10 @@ name: Meal Time Alerts
 
 on:
   schedule:
-    - cron: '10 22 * * 0-4' # 평일 아침 (KST 07:10 트리거 -> 07:30까지 대기 후 발송)
-    - cron: '10 2 * * 1-5'  # 평일 점심 (KST 11:10 트리거 -> 11:30까지 대기 후 발송)
-    - cron: '30 2 * * 6,0'  # 주말 점심 (KST 11:30 트리거 -> 11:50까지 대기 후 발송)
-    - cron: '10 8 * * *'    # 매일 저녁 (KST 17:10 트리거 -> 17:30까지 대기 후 발송)
+    - cron: '0 22 * * 0-4'  # 평일 아침 (KST 07:00 트리거 -> 07:20까지 대기 후 발송)
+    - cron: '0 2 * * 1-5'   # 평일 점심 (KST 11:00 트리거 -> 11:20까지 대기 후 발송)
+    - cron: '20 2 * * 6,0'  # 주말 점심 (KST 11:20 트리거 -> 11:40까지 대기 후 발송)
+    - cron: '0 8 * * *'     # 매일 저녁 (KST 17:00 트리거 -> 17:20까지 대기 후 발송)
 
 jobs:
   send-alert:
@@ -27,9 +27,7 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
-          # 깃허브 가상환경의 현재 UTC 시간(시)을 추출
           HOUR=$(date +%H)
-          
           if [ "$HOUR" -eq 22 ] || [ "$HOUR" -eq 21 ]; then
             python scripts/main.py 아침 $WEBHOOK_URL
           elif [ "$HOUR" -eq 2 ] || [ "$HOUR" -eq 1 ]; then

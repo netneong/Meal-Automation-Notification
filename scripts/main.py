@@ -56,11 +56,11 @@ def get_today_meals():
             label = cells[0].get_text(strip=True)
             found_job = None
             
-            if "아침" in label or "조식" in label:
+            if "아침" in label:
                 found_job = "아침"
-            elif "점심" in label or "중식" in label:
+            elif "점심" in label:
                 found_job = "점심"
-            elif "저녁" in label or "석식" in label:
+            elif "저녁" in label:
                 found_job = "저녁"
                 
             if found_job and len(cells) > col_index:
@@ -99,43 +99,42 @@ if __name__ == "__main__":
     is_weekend = today_date.weekday() >= 5
     date_str = today_date.strftime("%Y-%m-%d")
     
+    # 1. 하루 전체 식단 전송 로직
     if job_type == "daily":
-        payload = {
-            "content": "", 
-            "embeds": [{
-                "title": f"📅 {date_str} 오늘의 기숙사 식단 전체보기",
-                "color": 3447003,
-                "fields": []
-            }]
-        }
+        body_parts = []
         for name in ["아침", "점심", "저녁"]:
             menu_list = meals.get(name, [])
             menu_text = ", ".join(menu_list) if menu_list else "등록된 식단이 없습니다."
-            if name == "아침" and is_weekend:
-                menu_text = "❌ 주말 아침은 운영하지 않습니다."
-            payload["embeds"][0]["fields"].append({"name": f"🍴 {name}", "value": menu_text, "inline": False})
             
+            if name == "아침" and is_weekend:
+                menu_text = "❌ 미운영"
+                
+            body_parts.append(f"🍴 **{name}**: {menu_text}")
+            
+        full_content = f"**{date_str} 기숙사 식단 전체보기**\n>>> " + "\n\n".join(body_parts)
+        
+        payload = {"content": full_content}
         res = requests.post(webhook_url, json=payload)
         print(f"[완료] 전체 식단 전송 완료 (디스코드 상태코드: {res.status_code})")
 
+    # 2. 식사 시작 단일 알림 로직 (20분 전 시간 동기화 및 멘션/종 이모지 제거)
     elif job_type in ["아침", "점심", "저녁"]:
         if job_type == "아침" and is_weekend: 
             sys.exit(0)
             
-        if job_type == "아침": wait_until_target(7, 30)
-        elif job_type == "점심": wait_until_target(11, 50) if is_weekend else wait_until_target(11, 30)
-        elif job_type == "저녁": wait_until_target(17, 30)
+        # 식사 시작 20분 전으로 대기 타깃 시간 변경
+        if job_type == "아침": 
+            wait_until_target(7, 20)
+        elif job_type == "점심": 
+            wait_until_target(11, 40) if is_weekend else wait_until_target(11, 20)
+        elif job_type == "저녁": 
+            wait_until_target(17, 20)
             
         menu_list = meals.get(job_type, [])
-        menu_text = "\n".join([f"- {item}" for item in menu_list]) if menu_list else "등록된 메뉴가 없습니다."
+        content_menu = ", ".join(menu_list) if menu_list else "등록된 메뉴가 없습니다."
         
         payload = {
-            "content": f"🔔 **@here {job_type} 식사 시작 10분 전입니다!**", 
-            "embeds": [{
-                "title": f"🍱 오늘의 {job_type} 메뉴",
-                "description": menu_text,
-                "color": 15105570
-            }]
+            "content": f"**{job_type} 메뉴입니다!**\n>>> 🍴 **{job_type}**: {content_menu}"
         }
         res = requests.post(webhook_url, json=payload)
         print(f"[완료] {job_type} 알림 전송 완료 (디스코드 상태코드: {res.status_code})")
