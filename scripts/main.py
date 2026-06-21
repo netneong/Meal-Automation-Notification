@@ -12,10 +12,12 @@ HEADERS = {
 }
 
 def get_today_meals():
-    """HTML 테이블을 구조적으로 검사하여 진짜 식단 표를 찾아 파싱합니다."""
+    """상단 안내표 오인식을 방지하고, 요일 위치를 동적으로 파악하는 최적화 매칭 버전"""
     kst = pytz.timezone("Asia/Seoul")
     today = datetime.now(kst)
-    col_index = today.weekday() + 1 
+    
+    # 오늘 요일 문자열 생성 (예: "월", "화")
+    weekday_str = ["월", "화", "수", "목", "금", "토", "일"][today.weekday()]
     
     try:
         response = requests.get(URL, headers=HEADERS, timeout=10)
@@ -25,6 +27,7 @@ def get_today_meals():
         tables = soup.find_all("table")
         meal_table = None
         
+        # 안전한 테이블 구조 필터링 (안내 표 우회)
         for t in tables:
             rows = t.find_all("tr")
             is_real_meal_table = False
@@ -46,6 +49,20 @@ def get_today_meals():
             return None, today
 
         rows = meal_table.find_all("tr")
+        
+        # 오늘 요일이 몇 번째 열(Column)인지 헤더에서 동적으로 찾기
+        col_index = None
+        if rows:
+            header_cells = rows[0].find_all(["th", "td"])
+            for idx, cell in enumerate(header_cells):
+                if weekday_str in cell.get_text():
+                    col_index = idx
+                    break
+        
+        # 매칭 실패 시를 대비한 안전장치 기동
+        if col_index is None:
+            col_index = today.weekday() + 1
+            
         result = {}
         
         for row in rows:
@@ -56,11 +73,12 @@ def get_today_meals():
             label = cells[0].get_text(strip=True)
             found_job = None
             
-            if "아침" in label:
+            # 동의어 매칭 유지
+            if "아침" in label or "조식" in label:
                 found_job = "아침"
-            elif "점심" in label:
+            elif "점심" in label or "중식" in label:
                 found_job = "점심"
-            elif "저녁" in label:
+            elif "저녁" in label or "석식" in label:
                 found_job = "저녁"
                 
             if found_job and len(cells) > col_index:
