@@ -1,0 +1,39 @@
+name: Meal Time Alerts
+
+on:
+  schedule:
+    - cron: '10 22 * * 0-4' # 평일 아침 (KST 07:10 트리거 -> 07:30까지 대기 후 발송)
+    - cron: '10 2 * * 1-5'  # 평일 점심 (KST 11:10 트리거 -> 11:30까지 대기 후 발송)
+    - cron: '30 2 * * 6,0'  # 주말 점심 (KST 11:30 트리거 -> 11:50까지 대기 후 발송)
+    - cron: '10 8 * * *'    # 매일 저녁 (KST 17:10 트리거 -> 17:30까지 대기 후 발송)
+
+jobs:
+  send-alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pytz
+
+      - name: Determine Meal Type and Run
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          # 깃허브 가상환경의 현재 UTC 시간(시)을 추출
+          HOUR=$(date +%H)
+          
+          if [ "$HOUR" -eq 22 ] || [ "$HOUR" -eq 21 ]; then
+            python scripts/main.py 아침 $WEBHOOK_URL
+          elif [ "$HOUR" -eq 2 ] || [ "$HOUR" -eq 1 ]; then
+            python scripts/main.py 점심 $WEBHOOK_URL
+          elif [ "$HOUR" -eq 8 ] || [ "$HOUR" -eq 7 ]; then
+            python scripts/main.py 저녁 $WEBHOOK_URL
+          fi

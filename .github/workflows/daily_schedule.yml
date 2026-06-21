@@ -1,0 +1,29 @@
+name: Daily Meal Schedule
+
+on:
+  schedule:
+    # KST 아침 07:00는 UTC 기준 전날 밤 22:00입니다.
+    - cron: '0 22 * * *'
+
+jobs:
+  send-daily:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pytz
+
+      - name: Run Scraper
+        env:
+          # 2단계에서 깃허브 세팅에 저장한 웹후크 URL 변수명
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }} 
+        run: |
+          python scripts/main.py daily $WEBHOOK_URL
