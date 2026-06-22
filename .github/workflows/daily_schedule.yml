@@ -2,8 +2,9 @@ name: Daily Meal Schedule
 
 on:
   schedule:
-    # KST 아침 07:00는 UTC 기준 전날 밤 22:00입니다.
-    - cron: '0 22 * * *'
+    # KST 오전 06:58 (UTC 전날 밤 21:58) - 정각 트래픽 몰림 방지
+    - cron: '58 21 * * *'
+  workflow_dispatch: # 수동 실행 버튼 유지
 
 jobs:
   send-daily:
@@ -23,7 +24,6 @@ jobs:
 
       - name: Run Scraper
         env:
-          # 2단계에서 깃허브 세팅에 저장한 웹후크 URL 변수명
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }} 
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
           python scripts/main.py daily $WEBHOOK_URL
