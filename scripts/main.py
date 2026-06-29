@@ -108,7 +108,7 @@ if __name__ == "__main__":
     today_meals = parse_meals_by_date(soup, today)
     
     weekday_ko = ["월", "화", "수", "목", "금", "토", "일"][today.weekday()]
-    date_title = f"{today.strftime('%m/%d')} ({weekday_ko})  [점심 - 저녁 - 내일 아침]"
+    date_title = f"{today.strftime('%m/%d')} ({weekday_ko})"
     
     # 1. 종합 식단 전송 로직
     if job_type == "daily":
@@ -127,7 +127,7 @@ if __name__ == "__main__":
             tomorrow_breakfast_list = tomorrow_meals.get("아침", [])
             
             if tomorrow.weekday() >= 5:  # 내일이 주말(토, 일)인 경우
-                tomorrow_breakfast_text = "❌ 미운영"
+                tomorrow_breakfast_text = "X 미운영"
             else:
                 tomorrow_breakfast_text = " · ".join(tomorrow_breakfast_list) if tomorrow_breakfast_list else "등록된 식단이 없습니다."
             
